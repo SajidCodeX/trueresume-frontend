@@ -21,10 +21,10 @@ export default function Analyze() {
   }, [])
 
   const steps = [
-    { label: 'Parsing Resume', icon: FileText },
-    { label: 'Analyzing Format', icon: CheckCircle },
-    { label: 'Checking Keywords', icon: CheckCircle },
-    { label: 'Generating Score', icon: CheckCircle },
+    { label: '📄 Extracting text...', icon: FileText },
+    { label: '🔍 Checking formatting...', icon: CheckCircle },
+    { label: '🤖 AI analyzing keywords...', icon: CheckCircle },
+    { label: '📊 Calculating your score...', icon: CheckCircle },
   ]
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -56,47 +56,34 @@ export default function Analyze() {
     setStep(0)
 
     try {
-      // Simulate upload steps
-      await new Promise(resolve => setTimeout(resolve, 1500))
+      const formData = new FormData()
+      formData.append('resume', resumeFile)
+      if (jobDescription) formData.append('jobDescription', jobDescription)
+
       setStep(1)
-      await new Promise(resolve => setTimeout(resolve, 1500))
+      const response = await fetch('https://trueresume-backend.onrender.com/api/analyze', {
+        method: 'POST',
+        body: formData
+      })
       setStep(2)
-      await new Promise(resolve => setTimeout(resolve, 1500))
-      setStep(3)
 
-      // In a real app, send to backend
-      // const formData = new FormData()
-      // formData.append('resume', resumeFile)
-      // if (jobDescription) formData.append('job_description', jobDescription)
-      // const response = await fetch('https://trueresume-backend.onrender.com/api/analyze', {
-      //   method: 'POST',
-      //   body: formData
-      // })
-      // const data = await response.json()
-
-      // Mock result
-      const mockResult = {
-        score: 92,
-        status: 'Excellent',
-        metrics: {
-          formatting: 88,
-          keywords: 92,
-          readability: 87,
-          contact: 95,
-          experience: 89,
-          skills: 91,
-        },
+      if (!response.ok) {
+        const err = await response.json()
+        throw new Error(err.error || 'Analysis failed')
       }
 
-      // Store result and navigate
-      sessionStorage.setItem('analysisResult', JSON.stringify(mockResult))
+      const data = await response.json()
+      setStep(3)
+
+      sessionStorage.setItem('analysisResult', JSON.stringify(data))
       sessionStorage.setItem('resumeFileName', resumeFile.name)
 
       await new Promise(resolve => setTimeout(resolve, 1000))
       router.push('/results')
-    } catch (error) {
+
+    } catch (error: any) {
       console.error('Analysis error:', error)
-      alert('Error analyzing resume. Please try again.')
+      alert(error.message || 'Error analyzing resume. Please try again.')
       setLoading(false)
     }
   }
@@ -201,14 +188,14 @@ export default function Analyze() {
                 id="resume-upload"
               />
               <label htmlFor="resume-upload" className="cursor-pointer">
-                <button className="bg-[#4A6CF7] text-white px-8 py-2 font-black hover:bg-[#3a58d1] transition-colors">
+                <span className="bg-[#4A6CF7] text-white px-8 py-2 font-black hover:bg-[#3a58d1] transition-colors inline-block">
                   Choose File
-                </button>
+                </span>
               </label>
               <p className="text-gray-500 text-xs mt-4">PDF or DOC/DOCX only. Max 5MB.</p>
             </div>
 
-            {/* Job Description (Optional) */}
+            {/* Job Description */}
             <div className="mb-8">
               <label className="block text-[#1A1A2E] font-black mb-3">
                 Job Description (Optional)
@@ -233,7 +220,9 @@ export default function Analyze() {
           </>
         ) : (
           <div className="py-12 text-center">
-            <h2 className="text-2xl sm:text-3xl font-black text-[#1A1A2E] mb-12">Analyzing your resume...</h2>
+            <h2 className="text-2xl sm:text-3xl font-black text-[#1A1A2E] mb-12">
+              Analyzing your resume...
+            </h2>
             <div className="space-y-6">
               {steps.map((s, i) => {
                 const Icon = s.icon
@@ -241,18 +230,30 @@ export default function Analyze() {
                   <div
                     key={i}
                     className={`flex items-center gap-4 p-4 rounded-lg ${
-                      step > i ? 'bg-green-50 border border-green-200' : i === step ? 'bg-blue-50 border border-blue-200' : 'bg-gray-50 border border-gray-200'
+                      step > i
+                        ? 'bg-green-50 border border-green-200'
+                        : i === step
+                        ? 'bg-blue-50 border border-blue-200'
+                        : 'bg-gray-50 border border-gray-200'
                     }`}
                   >
                     <Icon
                       className={`flex-shrink-0 ${
-                        step > i ? 'text-green-600' : i === step ? 'text-[#4A6CF7] animate-spin' : 'text-gray-400'
+                        step > i
+                          ? 'text-green-600'
+                          : i === step
+                          ? 'text-[#4A6CF7] animate-spin'
+                          : 'text-gray-400'
                       }`}
                       size={24}
                     />
                     <span
                       className={`font-semibold ${
-                        step > i ? 'text-green-600' : i === step ? 'text-[#4A6CF7]' : 'text-gray-600'
+                        step > i
+                          ? 'text-green-600'
+                          : i === step
+                          ? 'text-[#4A6CF7]'
+                          : 'text-gray-600'
                       }`}
                     >
                       {s.label}
