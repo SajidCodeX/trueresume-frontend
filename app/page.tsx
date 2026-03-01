@@ -1,12 +1,16 @@
 'use client'
 
 import React, { useEffect, useState } from 'react'
-import { Menu, X, Upload, Star, Check, FileText, Zap, Target, Award, BarChart3, Settings } from 'lucide-react'
+import { Menu, X, Upload, Star, FileText, Zap, Target, Award, BarChart3, Settings, LogOut, User } from 'lucide-react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { supabase } from '../lib/supabase'
 
 export default function Home() {
+  const router = useRouter()
   const [scrolled, setScrolled] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [user, setUser] = useState<any>(null)
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 50)
@@ -14,52 +18,38 @@ export default function Home() {
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null)
+    })
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null)
+    })
+    return () => subscription.unsubscribe()
+  }, [])
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut()
+    router.push('/')
+  }
+
   const features = [
-    {
-      title: 'Format',
-      description: 'Check if your resume follows ATS-optimized formatting standards',
-      icon: FileText,
-    },
-    {
-      title: 'Sections',
-      description: 'Validate all essential resume sections are properly structured',
-      icon: Target,
-    },
-    {
-      title: 'Content',
-      description: 'Analyze content quality and relevance to job descriptions',
-      icon: Zap,
-    },
-    {
-      title: 'Style',
-      description: 'Ensure consistent styling and professional appearance',
-      icon: Settings,
-    },
-    {
-      title: 'Skills',
-      description: 'Identify and validate technical and soft skills',
-      icon: Award,
-    },
-    {
-      title: 'Keywords',
-      description: 'Check for relevant keywords from job descriptions',
-      icon: BarChart3,
-    },
+    { title: 'Format', description: 'Check if your resume follows ATS-optimized formatting standards', icon: FileText },
+    { title: 'Sections', description: 'Validate all essential resume sections are properly structured', icon: Target },
+    { title: 'Content', description: 'Analyze content quality and relevance to job descriptions', icon: Zap },
+    { title: 'Style', description: 'Ensure consistent styling and professional appearance', icon: Settings },
+    { title: 'Skills', description: 'Identify and validate technical and soft skills', icon: Award },
+    { title: 'Keywords', description: 'Check for relevant keywords from job descriptions', icon: BarChart3 },
   ]
 
   return (
     <div className="bg-white min-h-screen">
       {/* Navbar */}
-      <nav
-        className={`sticky top-0 z-50 transition-all duration-300 ${
-          scrolled
-            ? 'bg-white border-b border-gray-200 shadow-sm'
-            : 'bg-white border-b border-gray-100'
-        }`}
-      >
+      <nav className={`sticky top-0 z-50 transition-all duration-300 ${
+        scrolled ? 'bg-white border-b border-gray-200 shadow-sm' : 'bg-white border-b border-gray-100'
+      }`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex justify-between items-center">
-            {/* Logo */}
             <Link href="/">
               <div className="flex items-center gap-0 cursor-pointer">
                 <div className="bg-[#1B2B6B] px-3 py-2">
@@ -71,51 +61,52 @@ export default function Home() {
               </div>
             </Link>
 
-            {/* Desktop Navigation */}
             <div className="hidden md:flex items-center gap-8">
-              <Link href="/" className="text-[#1A1A2E] hover:text-[#4A6CF7] text-sm font-medium transition-colors">
-                Home
-              </Link>
-              <Link href="/about" className="text-[#1A1A2E] hover:text-[#4A6CF7] text-sm font-medium transition-colors">
-                About
-              </Link>
+              <Link href="/" className="text-[#1A1A2E] hover:text-[#4A6CF7] text-sm font-medium transition-colors">Home</Link>
+              <Link href="/about" className="text-[#1A1A2E] hover:text-[#4A6CF7] text-sm font-medium transition-colors">About</Link>
             </div>
 
-            {/* Right Actions */}
             <div className="hidden md:flex items-center gap-4">
-              <Link href="/login" className="text-[#1A1A2E] hover:text-[#4A6CF7] font-medium text-sm">
-                Login
-              </Link>
-              <Link href="/login" className="bg-[#1B2B6B] text-white px-6 py-2 font-medium text-sm hover:bg-[#141f4d] transition-colors">
-                Sign Up
-              </Link>
+              {user ? (
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2 text-sm text-[#1A1A2E]">
+                    <User size={16} />
+                    <span className="font-medium">{user.email?.split('@')[0]}</span>
+                  </div>
+                  <button
+                    onClick={handleLogout}
+                    className="flex items-center gap-2 bg-red-50 text-red-600 px-4 py-2 text-sm font-medium hover:bg-red-100 transition-colors rounded-lg"
+                  >
+                    <LogOut size={16} />
+                    Logout
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <Link href="/login" className="text-[#1A1A2E] hover:text-[#4A6CF7] font-medium text-sm">Login</Link>
+                  <Link href="/login?mode=signup" className="bg-[#1B2B6B] text-white px-6 py-2 font-medium text-sm hover:bg-[#141f4d] transition-colors">Sign Up</Link>
+                </>
+              )}
             </div>
 
-            {/* Mobile Menu Button */}
-            <button
-              className="md:hidden text-[#1A1A2E]"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            >
+            <button className="md:hidden text-[#1A1A2E]" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
               {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
             </button>
           </div>
 
-          {/* Mobile Navigation */}
           {mobileMenuOpen && (
             <div className="md:hidden pt-4 pb-4 border-t border-gray-200 mt-4">
-              <Link href="/" className="block text-[#1A1A2E] hover:text-[#4A6CF7] py-2 text-sm font-medium">
-                Home
-              </Link>
-              <Link href="/about" className="block text-[#1A1A2E] hover:text-[#4A6CF7] py-2 text-sm font-medium">
-                About
-              </Link>
+              <Link href="/" className="block text-[#1A1A2E] hover:text-[#4A6CF7] py-2 text-sm font-medium">Home</Link>
+              <Link href="/about" className="block text-[#1A1A2E] hover:text-[#4A6CF7] py-2 text-sm font-medium">About</Link>
               <div className="flex gap-2 mt-4">
-                <button className="flex-1 text-[#1A1A2E] hover:text-[#4A6CF7] font-medium text-sm">
-                  Login
-                </button>
-                <button className="flex-1 bg-[#1B2B6B] text-white px-4 py-2 font-medium text-sm hover:bg-[#141f4d]">
-                  Sign Up
-                </button>
+                {user ? (
+                  <button onClick={handleLogout} className="flex-1 bg-red-50 text-red-600 px-4 py-2 font-medium text-sm rounded-lg">Logout</button>
+                ) : (
+                  <>
+                    <Link href="/login" className="flex-1 text-center text-[#1A1A2E] py-2 text-sm font-medium">Login</Link>
+                    <Link href="/login?mode=signup" className="flex-1 text-center bg-[#1B2B6B] text-white px-4 py-2 font-medium text-sm">Sign Up</Link>
+                  </>
+                )}
               </div>
             </div>
           )}
@@ -126,7 +117,6 @@ export default function Home() {
       <section className="bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 md:py-20 lg:py-24">
           <div className="grid grid-cols-1 md:grid-cols-5 gap-8 lg:gap-12 items-center">
-            {/* Left Content - 60% */}
             <div className="md:col-span-3">
               <h1 className="text-4xl sm:text-5xl md:text-5xl lg:text-6xl font-black text-[#1A1A2E] leading-tight mb-6">
                 Get Expert Feedback on your{' '}
@@ -135,8 +125,6 @@ export default function Home() {
               <p className="text-gray-600 text-base sm:text-lg leading-relaxed mb-8">
                 Our free AI-powered resume checker scores your resume on key criteria recruiters and hiring managers look for. Get actionable steps to revamp your resume and land more interviews.
               </p>
-
-              {/* Upload Box */}
               <Link href="/analyze">
                 <div className="bg-white border-2 border-dashed border-gray-300 rounded-lg p-6 sm:p-8 mb-8 text-center hover:border-[#4A6CF7] transition-colors cursor-pointer">
                   <Upload className="mx-auto mb-3 text-[#4A6CF7]" size={32} />
@@ -144,15 +132,10 @@ export default function Home() {
                   <p className="text-gray-600 text-sm mb-4">PDF or DOC/DOCX only. Max 5MB file size.</p>
                 </div>
               </Link>
-
-              {/* Social Proof */}
               <div className="flex flex-col sm:flex-row sm:items-center gap-4">
                 <div className="flex -space-x-2">
                   {[...Array(5)].map((_, i) => (
-                    <div
-                      key={i}
-                      className="w-8 h-8 rounded-full bg-gradient-to-br from-[#4A6CF7] to-[#1B2B6B] border-2 border-white"
-                    />
+                    <div key={i} className="w-8 h-8 rounded-full bg-gradient-to-br from-[#4A6CF7] to-[#1B2B6B] border-2 border-white" />
                   ))}
                 </div>
                 <div>
@@ -166,7 +149,6 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Right Dashboard Mockup - 40% */}
             <div className="md:col-span-2 flex justify-center md:justify-end">
               <div className="bg-gradient-to-br from-[#1B2B6B] to-[#4A6CF7] rounded-xl p-6 shadow-2xl transform -rotate-2 w-full max-w-sm">
                 <div className="bg-white rounded-lg p-6">
@@ -175,16 +157,8 @@ export default function Home() {
                     <div className="relative w-32 h-32 mx-auto mb-2">
                       <svg viewBox="0 0 100 100" className="w-full h-full transform -rotate-90">
                         <circle cx="50" cy="50" r="45" fill="none" stroke="#e5e7eb" strokeWidth="8" />
-                        <circle
-                          cx="50"
-                          cy="50"
-                          r="45"
-                          fill="none"
-                          stroke="url(#scoreGradient)"
-                          strokeWidth="8"
-                          strokeDasharray={`${(92 / 100) * 283} 283`}
-                          strokeLinecap="round"
-                        />
+                        <circle cx="50" cy="50" r="45" fill="none" stroke="url(#scoreGradient)" strokeWidth="8"
+                          strokeDasharray={`${(92 / 100) * 283} 283`} strokeLinecap="round" />
                         <defs>
                           <linearGradient id="scoreGradient" x1="0%" y1="0%" x2="100%" y2="100%">
                             <stop offset="0%" stopColor="#1B2B6B" />
@@ -200,15 +174,13 @@ export default function Home() {
                   </div>
                   <div className="space-y-3 pt-6 border-t border-gray-200 text-xs">
                     <div className="flex justify-between text-gray-700">
-                      <span>Formatting</span>
-                      <span className="font-semibold">88</span>
+                      <span>Formatting</span><span className="font-semibold">88</span>
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
                       <div className="h-full bg-[#4A6CF7]" style={{ width: '88%' }} />
                     </div>
                     <div className="flex justify-between text-gray-700 pt-2">
-                      <span>Keywords</span>
-                      <span className="font-semibold">92</span>
+                      <span>Keywords</span><span className="font-semibold">92</span>
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
                       <div className="h-full bg-[#4A6CF7]" style={{ width: '92%' }} />
@@ -221,11 +193,10 @@ export default function Home() {
         </div>
       </section>
 
-      {/* What We Help Section - Navy Background */}
+      {/* What We Help Section */}
       <section className="bg-[#1B2B6B]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 md:py-20 lg:py-24">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12 items-center">
-            {/* Left Resume Mockup */}
             <div className="flex justify-center order-2 md:order-1">
               <div className="bg-white rounded-lg shadow-2xl p-6 w-full max-w-xs">
                 <div className="space-y-3 text-xs">
@@ -244,8 +215,6 @@ export default function Home() {
                 </div>
               </div>
             </div>
-
-            {/* Right List */}
             <div className="space-y-8 order-1 md:order-2">
               <div>
                 <div className="text-[#4A6CF7] font-black text-sm mb-3">01</div>
@@ -267,18 +236,15 @@ export default function Home() {
         </div>
       </section>
 
-      {/* AI Features Grid Section */}
+      {/* Features Grid */}
       <section className="bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 md:py-20 lg:py-24">
           <div className="text-center mb-12">
-            <h2 className="text-3xl sm:text-4xl md:text-4xl lg:text-5xl font-black text-[#1A1A2E] mb-4">
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-[#1A1A2E] mb-4">
               Our AI-Powered <span className="text-[#4A6CF7]">Resume</span> Checker
             </h2>
-            <p className="text-gray-600 text-base sm:text-lg">
-              will help you create a resume tailored to the position
-            </p>
+            <p className="text-gray-600 text-base sm:text-lg">will help you create a resume tailored to the position</p>
           </div>
-
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {features.map((feature, i) => {
               const Icon = feature.icon
@@ -294,12 +260,12 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ATS Understanding - Row 1 */}
+      {/* ATS Understanding */}
       <section className="bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 md:py-20 lg:py-24">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12 items-center">
             <div>
-              <h3 className="text-3xl sm:text-4xl md:text-4xl lg:text-5xl font-black text-[#1A1A2E] mb-6">
+              <h3 className="text-3xl sm:text-4xl lg:text-5xl font-black text-[#1A1A2E] mb-6">
                 Get an <span className="text-[#4A6CF7]">ATS</span> understanding check
               </h3>
               <p className="text-gray-600 text-base sm:text-lg leading-relaxed">
@@ -316,7 +282,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* AI Fixing - Row 2 */}
+      {/* AI Fixing */}
       <section className="bg-gray-50 border-y border-gray-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 md:py-20 lg:py-24">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12 items-center">
@@ -327,7 +293,7 @@ export default function Home() {
               </div>
             </div>
             <div className="order-1 md:order-2">
-              <h3 className="text-3xl sm:text-4xl md:text-4xl lg:text-5xl font-black text-[#1A1A2E] mb-6">
+              <h3 className="text-3xl sm:text-4xl lg:text-5xl font-black text-[#1A1A2E] mb-6">
                 Fixing the errors by the help of <span className="text-[#4A6CF7]">AI</span>
               </h3>
               <p className="text-gray-600 text-base sm:text-lg leading-relaxed">
@@ -338,7 +304,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* CTA Section - Navy */}
+      {/* CTA Section */}
       <section className="bg-[#1B2B6B]">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 md:py-20 lg:py-24 text-center">
           <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black text-white mb-4 sm:mb-6">
@@ -347,7 +313,6 @@ export default function Home() {
           <p className="text-gray-300 text-base sm:text-lg md:text-xl mb-12">
             Upload your resume and you'll get a detailed analysis with actionable recommendations.
           </p>
-
           <Link href="/analyze">
             <div className="bg-white border-2 border-dashed border-gray-300 rounded-lg p-8 sm:p-12 cursor-pointer hover:border-[#4A6CF7] transition-colors">
               <Upload className="mx-auto mb-4 text-[#4A6CF7]" size={40} />
@@ -402,7 +367,7 @@ export default function Home() {
             </div>
           </div>
           <div className="border-t border-gray-800 pt-8 flex flex-col sm:flex-row justify-between items-center text-sm">
-            <p>&copy; 2024 TrueResume. All rights reserved.</p>
+            <p>&copy; 2026 TrueResume. All rights reserved.</p>
             <div className="flex gap-4 mt-4 sm:mt-0">
               <a href="#" className="hover:text-white transition-colors">Twitter</a>
               <a href="#" className="hover:text-white transition-colors">LinkedIn</a>
