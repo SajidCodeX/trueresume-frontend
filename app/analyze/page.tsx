@@ -85,56 +85,60 @@ export default function Analyze() {
   }
 
   const handleAnalyze = async () => {
-    if (!resumeFile) {
-      alert('Please select a resume file')
-      return
-    }
-    setLoading(true)
-    setStep(0)
-
-    try {
-      const formData = new FormData()
-      formData.append('resume', resumeFile)
-      if (jobDescription) formData.append('jobDescription', jobDescription)
-      if (user?.id) formData.append('userId', user.id)
-
-      setStep(1)
-
-      const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 120000)
-      const response = await fetch('https://trueresume-backend.onrender.com/api/analyze', {
-        method: 'POST',
-        body: formData,
-        signal: controller.signal
-      })
-      clearTimeout(timeoutId)
-
-      setStep(2)
-
-      if (!response.ok) {
-        const err = await response.json()
-        throw new Error(err.error || 'Analysis failed')
-      }
-
-      const data = await response.json()
-      setStep(3)
-
-      sessionStorage.setItem('analysisResult', JSON.stringify(data))
-      sessionStorage.setItem('resumeFileName', resumeFile.name)
-
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      router.push('/results')
-
-    } catch (error: any) {
-      console.error('Analysis error:', error)
-      if (error.name === 'AbortError') {
-        alert('Analysis timed out. Please try again.')
-      } else {
-        alert(error.message || 'Error analyzing resume. Please try again.')
-      }
-      setLoading(false)
-    }
+  if (!resumeFile) {
+    alert('Please select a resume file')
+    return
   }
+  setLoading(true)
+  setStep(0)
+
+  try {
+    // FIX: File ko pehle ArrayBuffer mein read karo
+    const fileBuffer = await resumeFile.arrayBuffer()
+    const fileBlob = new Blob([fileBuffer], { type: resumeFile.type })
+
+    const formData = new FormData()
+    formData.append('resume', fileBlob, resumeFile.name)
+    if (jobDescription) formData.append('jobDescription', jobDescription)
+    if (user?.id) formData.append('userId', user.id)
+
+    setStep(1)
+
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 120000)
+    const response = await fetch('https://trueresume-backend.onrender.com/api/analyze', {
+      method: 'POST',
+      body: formData,
+      signal: controller.signal
+    })
+    clearTimeout(timeoutId)
+
+    setStep(2)
+
+    if (!response.ok) {
+      const err = await response.json()
+      throw new Error(err.error || 'Analysis failed')
+    }
+
+    const data = await response.json()
+    setStep(3)
+
+    sessionStorage.setItem('analysisResult', JSON.stringify(data))
+    sessionStorage.setItem('resumeFileName', resumeFile.name)
+
+    await new Promise(resolve => setTimeout(resolve, 1000))
+    router.push('/results')
+
+  } catch (error: any) {
+    console.error('Analysis error:', error)
+    if (error.name === 'AbortError') {
+      alert('Analysis timed out. Please try again.')
+    } else {
+      alert(error.message || 'Error analyzing resume. Please try again.')
+    }
+    setLoading(false)
+  }
+}
 
   return (
     <div className="bg-white min-h-screen">
