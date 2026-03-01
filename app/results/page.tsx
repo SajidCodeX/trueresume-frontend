@@ -104,8 +104,12 @@ export default function Results() {
               <Link href="/about" className="text-[#1A1A2E] hover:text-[#4A6CF7] text-sm font-medium transition-colors">About</Link>
             </div>
             <div className="hidden md:flex items-center gap-4">
-              <button className="text-[#1A1A2E] hover:text-[#4A6CF7] font-medium text-sm">Login</button>
-              <button className="bg-[#1B2B6B] text-white px-6 py-2 font-medium text-sm hover:bg-[#141f4d] transition-colors">Sign Up</button>
+              <Link href="/login" className="text-[#1A1A2E] hover:text-[#4A6CF7] font-medium text-sm">
+                Login
+              </Link>
+              <Link href="/login" className="bg-[#1B2B6B] text-white px-6 py-2 font-medium text-sm hover:bg-[#141f4d] transition-colors">
+                Sign Up
+              </Link>
             </div>
             <button className="md:hidden text-[#1A1A2E]" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
               {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
