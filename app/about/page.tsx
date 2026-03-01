@@ -65,12 +65,12 @@ export default function About() {
             </div>
 
             <div className="hidden md:flex items-center gap-4">
-              <button className="text-[#1A1A2E] hover:text-[#4A6CF7] font-medium text-sm">
+              <Link href="/login" className="text-[#1A1A2E] hover:text-[#4A6CF7] font-medium text-sm">
                 Login
-              </button>
-              <button className="bg-[#1B2B6B] text-white px-6 py-2 font-medium text-sm hover:bg-[#141f4d] transition-colors">
+              </Link>
+              <Link href="/login" className="bg-[#1B2B6B] text-white px-6 py-2 font-medium text-sm hover:bg-[#141f4d] transition-colors">
                 Sign Up
-              </button>
+              </Link>
             </div>
 
             <button
