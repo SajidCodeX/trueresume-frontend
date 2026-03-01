@@ -203,7 +203,22 @@ export default function Results() {
             </div>
           </div>
         </div>
-
+        
+        {/* ATS Verdict */}
+        {data.ats_verdict && (
+          <div className="mb-16">
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-6 sm:p-8">
+              <div className="flex gap-4 items-start">
+                <div className="text-3xl">🤖</div>
+                <div>
+                  <h2 className="text-xl font-black text-[#1A1A2E] mb-2">AI Verdict</h2>
+                  <p className="text-gray-700 text-base leading-relaxed">{data.ats_verdict}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+        
         {/* Issues Panel */}
         <div className="mb-16">
           <h2 className="text-3xl font-black text-[#1A1A2E] mb-6">Issues Found ({issues.length})</h2>
