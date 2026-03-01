@@ -146,12 +146,12 @@ export default function Analyze() {
                 About
               </Link>
               <div className="flex gap-2 mt-4">
-                <button className="flex-1 text-[#1A1A2E] hover:text-[#4A6CF7] font-medium text-sm">
+                <Link href="/login" className="text-[#1A1A2E] hover:text-[#4A6CF7] font-medium text-sm">
                   Login
-                </button>
-                <button className="flex-1 bg-[#1B2B6B] text-white px-4 py-2 font-medium text-sm hover:bg-[#141f4d]">
+                </Link>
+                <Link href="/login" className="bg-[#1B2B6B] text-white px-6 py-2 font-medium text-sm hover:bg-[#141f4d] transition-colors">
                   Sign Up
-                </button>
+                </Link>
               </div>
             </div>
           )}
