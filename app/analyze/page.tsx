@@ -16,7 +16,19 @@ export default function Analyze() {
   const [step, setStep] = useState(0)
   const [user, setUser] = useState<any>(null)
 
+  // FIX 1: Render Wake-up call
+  // This triggers as soon as the user lands on the page to wake up the Render backend
   useEffect(() => {
+    const wakeup = async () => {
+      try {
+        await fetch('https://trueresume-backend.onrender.com/health');
+        console.log("Backend connection established.");
+      } catch (e) {
+        console.error("Backend waking up...");
+      }
+    };
+    wakeup();
+    
     const handleScroll = () => setScrolled(window.scrollY > 50)
     window.addEventListener('scroll', handleScroll)
     return () => window.removeEventListener('scroll', handleScroll)
@@ -66,29 +78,53 @@ export default function Analyze() {
     }
     setLoading(true)
     setStep(0)
+
     try {
       const formData = new FormData()
-      formData.append('resume', resumeFile)
+      
+      // FIX 2: Ensure field name matches your backend upload.single('resume')
+      formData.append('resume', resumeFile) 
+      
       if (jobDescription) formData.append('jobDescription', jobDescription)
+      
+      // Pass userId if available to link the analysis to the account
+      if (user?.id) formData.append('userId', user.id)
+
       setStep(1)
+      
+      // FIX 3: MOBILE STABILITY
+      // We explicitly DO NOT set 'Content-Type'. The browser will auto-generate 
+      // the boundary string which is vital for mobile Safari/Chrome.
       const response = await fetch('https://trueresume-backend.onrender.com/api/analyze', {
         method: 'POST',
-        body: formData
+        body: formData,
       })
+
       setStep(2)
+      
       if (!response.ok) {
         const err = await response.json()
         throw new Error(err.error || 'Analysis failed')
       }
+
       const data = await response.json()
       setStep(3)
+      
       sessionStorage.setItem('analysisResult', JSON.stringify(data))
       sessionStorage.setItem('resumeFileName', resumeFile.name)
+      
       await new Promise(resolve => setTimeout(resolve, 1000))
       router.push('/results')
+      
     } catch (error: any) {
       console.error('Analysis error:', error)
-      alert(error.message || 'Error analyzing resume. Please try again.')
+      
+      // Better error message for mobile network issues
+      const errorMsg = error.name === 'TypeError' 
+        ? 'Connection failed. Please check your internet or try again in a few seconds while the server starts.'
+        : error.message;
+        
+      alert(errorMsg)
       setLoading(false)
     }
   }
@@ -197,7 +233,7 @@ export default function Analyze() {
                   Choose File
                 </span>
               </label>
-              <p className="text-gray-500 text-xs mt-4">PDF or DOC/DOCX only. Max 5MB.</p>
+              <p className="text-gray-500 text-xs mt-4">PDF or DOC/DOCX only. Max 10MB.</p>
             </div>
 
             <div className="mb-8">
