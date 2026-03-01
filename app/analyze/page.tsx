@@ -15,20 +15,33 @@ export default function Analyze() {
   const [loading, setLoading] = useState(false)
   const [step, setStep] = useState(0)
   const [user, setUser] = useState<any>(null)
+  const [backendReady, setBackendReady] = useState(false)
+  const [wakingUp, setWakingUp] = useState(true)
 
-  // FIX 1: Render Wake-up call
-  // This triggers as soon as the user lands on the page to wake up the Render backend
   useEffect(() => {
     const wakeup = async () => {
-      try {
-        await fetch('https://trueresume-backend.onrender.com/health');
-        console.log("Backend connection established.");
-      } catch (e) {
-        console.error("Backend waking up...");
+      setWakingUp(true)
+      let attempts = 0
+      while (attempts < 10) {
+        try {
+          const res = await fetch('https://trueresume-backend.onrender.com/health', {
+            signal: AbortSignal.timeout(8000)
+          })
+          if (res.ok) {
+            setBackendReady(true)
+            setWakingUp(false)
+            return
+          }
+        } catch (e) {
+          // still waking up
+        }
+        attempts++
+        await new Promise(r => setTimeout(r, 5000))
       }
-    };
-    wakeup();
-    
+      setWakingUp(false) // give up after 50s, let user try anyway
+    }
+    wakeup()
+
     const handleScroll = () => setScrolled(window.scrollY > 50)
     window.addEventListener('scroll', handleScroll)
     return () => window.removeEventListener('scroll', handleScroll)
@@ -81,30 +94,23 @@ export default function Analyze() {
 
     try {
       const formData = new FormData()
-      
-      // FIX 2: Ensure field name matches your backend upload.single('resume')
-      formData.append('resume', resumeFile) 
-      
+      formData.append('resume', resumeFile)
       if (jobDescription) formData.append('jobDescription', jobDescription)
-      
-      // Pass userId if available to link the analysis to the account
       if (user?.id) formData.append('userId', user.id)
 
       setStep(1)
-      
-      // FIX 3: MOBILE STABILITY
-      // We explicitly DO NOT set 'Content-Type'. The browser will auto-generate 
-      // the boundary string which is vital for mobile Safari/Chrome.
-      // Frontend: Analyze.tsx
+
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 120000)
       const response = await fetch('https://trueresume-backend.onrender.com/api/analyze', {
         method: 'POST',
-        mode: 'cors', // Explicitly set cors mode
         body: formData,
-        // Headers empty rakhein, Content-Type mat dein
-      });
+        signal: controller.signal
+      })
+      clearTimeout(timeoutId)
 
       setStep(2)
-      
+
       if (!response.ok) {
         const err = await response.json()
         throw new Error(err.error || 'Analysis failed')
@@ -112,22 +118,20 @@ export default function Analyze() {
 
       const data = await response.json()
       setStep(3)
-      
+
       sessionStorage.setItem('analysisResult', JSON.stringify(data))
       sessionStorage.setItem('resumeFileName', resumeFile.name)
-      
+
       await new Promise(resolve => setTimeout(resolve, 1000))
       router.push('/results')
-      
+
     } catch (error: any) {
       console.error('Analysis error:', error)
-      
-      // Better error message for mobile network issues
-      const errorMsg = error.name === 'TypeError' 
-        ? 'Connection failed. Please check your internet or try again in a few seconds while the server starts.'
-        : error.message;
-        
-      alert(errorMsg)
+      if (error.name === 'AbortError') {
+        alert('Analysis timed out. Please try again.')
+      } else {
+        alert(error.message || 'Error analyzing resume. Please try again.')
+      }
       setLoading(false)
     }
   }
@@ -203,6 +207,15 @@ export default function Analyze() {
         </div>
       </nav>
 
+      {/* Waking Up Banner */}
+      {wakingUp && (
+        <div className="bg-amber-50 border-b border-amber-200 px-4 py-3 text-center">
+          <p className="text-amber-700 text-sm font-medium">
+            ⚡ Server starting up, please wait a moment...
+          </p>
+        </div>
+      )}
+
       {/* Main Content */}
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 md:py-20">
         {!loading ? (
@@ -252,10 +265,10 @@ export default function Analyze() {
 
             <button
               onClick={handleAnalyze}
-              disabled={!resumeFile}
+              disabled={!resumeFile || wakingUp}
               className="w-full bg-[#1B2B6B] text-white py-3 font-black hover:bg-[#141f4d] transition-colors disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-lg"
             >
-              Analyze My Resume →
+              {wakingUp ? 'Server starting... please wait' : 'Analyze My Resume →'}
             </button>
           </>
         ) : (
