@@ -95,10 +95,13 @@ export default function Analyze() {
       // FIX 3: MOBILE STABILITY
       // We explicitly DO NOT set 'Content-Type'. The browser will auto-generate 
       // the boundary string which is vital for mobile Safari/Chrome.
+      // Frontend: Analyze.tsx
       const response = await fetch('https://trueresume-backend.onrender.com/api/analyze', {
         method: 'POST',
+        mode: 'cors', // Explicitly set cors mode
         body: formData,
-      })
+        // Headers empty rakhein, Content-Type mat dein
+      });
 
       setStep(2)
       
