@@ -1,21 +1,35 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { Menu, X, RotateCcw, CheckCircle2, AlertCircle, AlertTriangle, TrendingUp, Zap } from 'lucide-react'
+import { Menu, X, RotateCcw, CheckCircle2, AlertCircle, AlertTriangle, TrendingUp, Zap, LogOut, User } from 'lucide-react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { supabase } from '../../lib/supabase'
 
 export default function Results() {
+  const router = useRouter()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
   const [activeTab, setActiveTab] = useState('all')
   const [score, setScore] = useState(0)
   const [fileName, setFileName] = useState('')
   const [data, setData] = useState<any>(null)
+  const [user, setUser] = useState<any>(null)
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 50)
     window.addEventListener('scroll', handleScroll)
     return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null)
+    })
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null)
+    })
+    return () => subscription.unsubscribe()
   }, [])
 
   useEffect(() => {
@@ -36,15 +50,18 @@ export default function Results() {
     }
   }, [])
 
+  const handleLogout = async () => {
+    await supabase.auth.signOut()
+    router.push('/')
+  }
+
   if (!data) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <p className="text-gray-600 mb-4">No analysis data found.</p>
           <Link href="/analyze">
-            <button className="bg-[#1B2B6B] text-white px-6 py-2 font-black">
-              Analyze a Resume
-            </button>
+            <button className="bg-[#1B2B6B] text-white px-6 py-2 font-black">Analyze a Resume</button>
           </Link>
         </div>
       </div>
@@ -52,10 +69,7 @@ export default function Results() {
   }
 
   const issues = data.issues || []
-  const filteredIssues = activeTab === 'all'
-    ? issues
-    : issues.filter((i: any) => i.severity === activeTab)
-
+  const filteredIssues = activeTab === 'all' ? issues : issues.filter((i: any) => i.severity === activeTab)
   const sectionScores = data.section_scores || {}
   const metrics = [
     { label: 'Formatting', score: sectionScores.formatting || 0 },
@@ -65,21 +79,12 @@ export default function Results() {
     { label: 'Experience', score: sectionScores.work_experience || 0 },
     { label: 'Skills', score: sectionScores.skills || 0 },
   ]
-
   const foundKeywords = data.keywords_found || []
   const missingKeywords = data.keywords_missing || []
   const strengths = data.strengths || []
   const quickWins = data.quick_wins || []
-
-  const scoreLabel =
-    score >= 90 ? 'Excellent' :
-    score >= 75 ? 'Good' :
-    score >= 50 ? 'Fair' : 'Poor'
-
-  const passRateColor =
-    data.pass_rate === 'Very High' || data.pass_rate === 'High' ? 'bg-green-100 text-green-800' :
-    data.pass_rate === 'Medium' ? 'bg-yellow-100 text-yellow-800' :
-    'bg-red-100 text-red-800'
+  const scoreLabel = score >= 90 ? 'Excellent' : score >= 75 ? 'Good' : score >= 50 ? 'Fair' : 'Poor'
+  const passRateColor = data.pass_rate === 'Very High' || data.pass_rate === 'High' ? 'bg-green-100 text-green-800' : data.pass_rate === 'Medium' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'
 
   return (
     <div className="bg-white min-h-screen">
@@ -104,12 +109,26 @@ export default function Results() {
               <Link href="/about" className="text-[#1A1A2E] hover:text-[#4A6CF7] text-sm font-medium transition-colors">About</Link>
             </div>
             <div className="hidden md:flex items-center gap-4">
-              <Link href="/login" className="text-[#1A1A2E] hover:text-[#4A6CF7] font-medium text-sm">
-                Login
-              </Link>
-              <Link href="/login" className="bg-[#1B2B6B] text-white px-6 py-2 font-medium text-sm hover:bg-[#141f4d] transition-colors">
-                Sign Up
-              </Link>
+              {user ? (
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2 text-sm text-[#1A1A2E]">
+                    <User size={16} />
+                    <span className="font-medium">{user.email?.split('@')[0]}</span>
+                  </div>
+                  <button
+                    onClick={handleLogout}
+                    className="flex items-center gap-2 bg-red-50 text-red-600 px-4 py-2 text-sm font-medium hover:bg-red-100 transition-colors rounded-lg"
+                  >
+                    <LogOut size={16} />
+                    Logout
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <Link href="/login" className="text-[#1A1A2E] hover:text-[#4A6CF7] font-medium text-sm">Login</Link>
+                  <Link href="/login?mode=signup" className="bg-[#1B2B6B] text-white px-6 py-2 font-medium text-sm hover:bg-[#141f4d] transition-colors">Sign Up</Link>
+                </>
+              )}
             </div>
             <button className="md:hidden text-[#1A1A2E]" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
               {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
@@ -119,6 +138,16 @@ export default function Results() {
             <div className="md:hidden pt-4 pb-4 border-t border-gray-200 mt-4">
               <Link href="/" className="block text-[#1A1A2E] hover:text-[#4A6CF7] py-2 text-sm font-medium">Home</Link>
               <Link href="/about" className="block text-[#1A1A2E] hover:text-[#4A6CF7] py-2 text-sm font-medium">About</Link>
+              <div className="flex gap-2 mt-4">
+                {user ? (
+                  <button onClick={handleLogout} className="flex-1 bg-red-50 text-red-600 px-4 py-2 font-medium text-sm rounded-lg">Logout</button>
+                ) : (
+                  <>
+                    <Link href="/login" className="flex-1 text-center text-[#1A1A2E] py-2 text-sm font-medium">Login</Link>
+                    <Link href="/login?mode=signup" className="flex-1 text-center bg-[#1B2B6B] text-white px-4 py-2 font-medium text-sm">Sign Up</Link>
+                  </>
+                )}
+              </div>
             </div>
           )}
         </div>
@@ -142,7 +171,6 @@ export default function Results() {
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 md:py-20">
-
         {/* Score Hero */}
         <div className="mb-16">
           <div className="bg-gradient-to-br from-[#1B2B6B] to-[#4A6CF7] rounded-2xl p-8 sm:p-12 text-center">
@@ -156,11 +184,8 @@ export default function Results() {
               <div className="relative w-48 h-48 sm:w-56 sm:h-56">
                 <svg viewBox="0 0 100 100" className="w-full h-full transform -rotate-90">
                   <circle cx="50" cy="50" r="45" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="8" />
-                  <circle
-                    cx="50" cy="50" r="45" fill="none" stroke="white" strokeWidth="8"
-                    strokeDasharray={`${(score / 100) * 283} 283`}
-                    strokeLinecap="round"
-                  />
+                  <circle cx="50" cy="50" r="45" fill="none" stroke="white" strokeWidth="8"
+                    strokeDasharray={`${(score / 100) * 283} 283`} strokeLinecap="round" />
                 </svg>
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
                   <span className="text-6xl sm:text-7xl font-black text-white">{score}</span>
@@ -181,18 +206,13 @@ export default function Results() {
 
         {/* Issues Panel */}
         <div className="mb-16">
-          <h2 className="text-3xl font-black text-[#1A1A2E] mb-6">
-            Issues Found ({issues.length})
-          </h2>
+          <h2 className="text-3xl font-black text-[#1A1A2E] mb-6">Issues Found ({issues.length})</h2>
           <div className="flex flex-wrap gap-2 mb-6">
             {['all', 'high', 'medium', 'low'].map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
+              <button key={tab} onClick={() => setActiveTab(tab)}
                 className={`px-6 py-2 rounded-lg font-black text-sm uppercase tracking-tight transition-colors ${
                   activeTab === tab ? 'bg-[#1B2B6B] text-white' : 'bg-gray-100 text-[#1A1A2E] hover:bg-gray-200'
-                }`}
-              >
+                }`}>
                 {tab === 'all' ? 'All Issues' : `${tab.charAt(0).toUpperCase() + tab.slice(1)} Priority`}
               </button>
             ))}
@@ -218,9 +238,7 @@ export default function Results() {
                       </div>
                       <p className="text-gray-600 text-sm mb-2">{issue.description}</p>
                       {issue.suggestion && (
-                        <p className="text-[#4A6CF7] text-sm font-semibold">
-                          💡 {issue.suggestion}
-                        </p>
+                        <p className="text-[#4A6CF7] text-sm font-semibold">💡 {issue.suggestion}</p>
                       )}
                     </div>
                   </div>
@@ -239,9 +257,7 @@ export default function Results() {
             </h3>
             <div className="flex flex-wrap gap-2">
               {foundKeywords.map((kw: string) => (
-                <span key={kw} className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-semibold">
-                  {kw}
-                </span>
+                <span key={kw} className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-semibold">{kw}</span>
               ))}
             </div>
           </div>
@@ -252,9 +268,7 @@ export default function Results() {
             </h3>
             <div className="flex flex-wrap gap-2">
               {missingKeywords.map((kw: string) => (
-                <span key={kw} className="bg-red-100 text-red-800 px-3 py-1 rounded-full text-sm font-semibold">
-                  {kw}
-                </span>
+                <span key={kw} className="bg-red-100 text-red-800 px-3 py-1 rounded-full text-sm font-semibold">{kw}</span>
               ))}
             </div>
           </div>
@@ -292,7 +306,7 @@ export default function Results() {
           </div>
         </div>
 
-        {/* Stats Bar */}
+        {/* Stats */}
         <div className="bg-gray-50 rounded-lg p-6 border border-gray-200 mb-16">
           <h3 className="font-black text-[#1A1A2E] mb-4">Resume Statistics</h3>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 text-center">
