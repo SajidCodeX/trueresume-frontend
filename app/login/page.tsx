@@ -1,12 +1,13 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect, Suspense } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '../../lib/supabase'
 
-export default function Login() {
+function LoginForm() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [isSignUp, setIsSignUp] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -14,6 +15,10 @@ export default function Login() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+
+  useEffect(() => {
+    setIsSignUp(searchParams.get('mode') === 'signup')
+  }, [searchParams])
 
   const handleSubmit = async () => {
     setLoading(true)
@@ -41,6 +46,88 @@ export default function Login() {
   }
 
   return (
+    <div className="max-w-md mx-auto px-4 py-20">
+      <div className="bg-white border border-gray-200 rounded-2xl p-8 shadow-lg">
+        <h1 className="text-2xl font-black text-[#1A1A2E] text-center mb-2">
+          {isSignUp ? 'Create Account' : 'Welcome Back'}
+        </h1>
+        <p className="text-gray-500 text-sm text-center mb-8">
+          {isSignUp ? 'Start analyzing your resume for free' : 'Sign in to your account'}
+        </p>
+
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm mb-6">
+            {error}
+          </div>
+        )}
+        {success && (
+          <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg text-sm mb-6">
+            {success}
+          </div>
+        )}
+
+        {isSignUp && (
+          <div className="mb-4">
+            <label className="block text-sm font-black text-[#1A1A2E] mb-2">Full Name</label>
+            <input
+              type="text"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              placeholder="Your Name"
+              className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-[#4A6CF7]"
+            />
+          </div>
+        )}
+
+        <div className="mb-4">
+          <label className="block text-sm font-black text-[#1A1A2E] mb-2">Email</label>
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="you@example.com"
+            className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-[#4A6CF7]"
+          />
+        </div>
+
+        <div className="mb-6">
+          <label className="block text-sm font-black text-[#1A1A2E] mb-2">Password</label>
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="••••••••"
+            className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-[#4A6CF7]"
+          />
+        </div>
+
+        <button
+          onClick={handleSubmit}
+          disabled={loading}
+          className="w-full bg-[#1B2B6B] text-white py-3 font-black hover:bg-[#141f4d] transition-colors rounded-lg disabled:opacity-50"
+        >
+          {loading ? 'Please wait...' : isSignUp ? 'Create Account' : 'Sign In'}
+        </button>
+
+        <p className="text-center text-sm text-gray-500 mt-6">
+          {isSignUp ? 'Already have an account?' : "Don't have an account?"}{' '}
+          <button
+            onClick={() => { setIsSignUp(!isSignUp); setError(''); setSuccess('') }}
+            className="text-[#4A6CF7] font-black hover:underline"
+          >
+            {isSignUp ? 'Sign In' : 'Sign Up'}
+          </button>
+        </p>
+        <p className="text-center text-xs text-gray-400 mt-4">
+          🔒 Your data is secure and never shared
+        </p>
+      </div>
+    </div>
+  )
+}
+
+export default function Login() {
+  return (
     <div className="bg-white min-h-screen">
       <nav className="bg-white border-b border-gray-100 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 py-4">
@@ -56,84 +143,9 @@ export default function Login() {
           </Link>
         </div>
       </nav>
-
-      <div className="max-w-md mx-auto px-4 py-20">
-        <div className="bg-white border border-gray-200 rounded-2xl p-8 shadow-lg">
-          <h1 className="text-2xl font-black text-[#1A1A2E] text-center mb-2">
-            {isSignUp ? 'Create Account' : 'Welcome Back'}
-          </h1>
-          <p className="text-gray-500 text-sm text-center mb-8">
-            {isSignUp ? 'Start analyzing your resume for free' : 'Sign in to your account'}
-          </p>
-
-          {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm mb-6">
-              {error}
-            </div>
-          )}
-          {success && (
-            <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg text-sm mb-6">
-              {success}
-            </div>
-          )}
-
-          {isSignUp && (
-            <div className="mb-4">
-              <label className="block text-sm font-black text-[#1A1A2E] mb-2">Full Name</label>
-              <input
-                type="text"
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                placeholder="Your Name"
-                className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-[#4A6CF7]"
-              />
-            </div>
-          )}
-
-          <div className="mb-4">
-            <label className="block text-sm font-black text-[#1A1A2E] mb-2">Email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@example.com"
-              className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-[#4A6CF7]"
-            />
-          </div>
-
-          <div className="mb-6">
-            <label className="block text-sm font-black text-[#1A1A2E] mb-2">Password</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-[#4A6CF7]"
-            />
-          </div>
-
-          <button
-            onClick={handleSubmit}
-            disabled={loading}
-            className="w-full bg-[#1B2B6B] text-white py-3 font-black hover:bg-[#141f4d] transition-colors rounded-lg disabled:opacity-50"
-          >
-            {loading ? 'Please wait...' : isSignUp ? 'Create Account' : 'Sign In'}
-          </button>
-
-          <p className="text-center text-sm text-gray-500 mt-6">
-            {isSignUp ? 'Already have an account?' : "Don't have an account?"}{' '}
-            <button
-              onClick={() => { setIsSignUp(!isSignUp); setError(''); setSuccess('') }}
-              className="text-[#4A6CF7] font-black hover:underline"
-            >
-              {isSignUp ? 'Sign In' : 'Sign Up'}
-            </button>
-          </p>
-          <p className="text-center text-xs text-gray-400 mt-4">
-            🔒 Your data is secure and never shared
-          </p>
-        </div>
-      </div>
+      <Suspense fallback={<div className="flex justify-center py-20 text-gray-400">Loading...</div>}>
+        <LoginForm />
+      </Suspense>
     </div>
   )
 }
