@@ -1,18 +1,37 @@
 'use client'
 
-import React, { useState } from 'react'
-import { Menu, X, CheckCircle, Zap, Rocket } from 'lucide-react'
+import React, { useState, useEffect } from 'react'
+import { Menu, X, CheckCircle, Zap, Rocket, LogOut, User } from 'lucide-react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { supabase } from '../../lib/supabase'
 
 export default function About() {
+  const router = useRouter()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
+  const [user, setUser] = useState<any>(null)
 
-  React.useEffect(() => {
+  useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 50)
     window.addEventListener('scroll', handleScroll)
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null)
+    })
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null)
+    })
+    return () => subscription.unsubscribe()
+  }, [])
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut()
+    router.push('/')
+  }
 
   const values = [
     {
@@ -35,13 +54,9 @@ export default function About() {
   return (
     <div className="bg-white min-h-screen">
       {/* Navbar */}
-      <nav
-        className={`sticky top-0 z-50 transition-all duration-300 ${
-          scrolled
-            ? 'bg-white border-b border-gray-200 shadow-sm'
-            : 'bg-white border-b border-gray-100'
-        }`}
-      >
+      <nav className={`sticky top-0 z-50 transition-all duration-300 ${
+        scrolled ? 'bg-white border-b border-gray-200 shadow-sm' : 'bg-white border-b border-gray-100'
+      }`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex justify-between items-center">
             <Link href="/">
@@ -56,46 +71,57 @@ export default function About() {
             </Link>
 
             <div className="hidden md:flex items-center gap-8">
-              <Link href="/" className="text-[#1A1A2E] hover:text-[#4A6CF7] text-sm font-medium transition-colors">
-                Home
-              </Link>
-              <Link href="/about" className="text-[#4A6CF7] text-sm font-medium">
-                About
-              </Link>
+              <Link href="/" className="text-[#1A1A2E] hover:text-[#4A6CF7] text-sm font-medium transition-colors">Home</Link>
+              <Link href="/about" className="text-[#4A6CF7] text-sm font-medium">About</Link>
             </div>
 
             <div className="hidden md:flex items-center gap-4">
-              <Link href="/login" className="text-[#1A1A2E] hover:text-[#4A6CF7] font-medium text-sm">
-                Login
-              </Link>
-              <Link href="/login" className="bg-[#1B2B6B] text-white px-6 py-2 font-medium text-sm hover:bg-[#141f4d] transition-colors">
-                Sign Up
-              </Link>
+              {user ? (
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2 text-sm text-[#1A1A2E]">
+                    <User size={16} />
+                    <span className="font-medium">{user.email?.split('@')[0]}</span>
+                  </div>
+                  <button
+                    onClick={handleLogout}
+                    className="flex items-center gap-2 bg-red-50 text-red-600 px-4 py-2 text-sm font-medium hover:bg-red-100 transition-colors rounded-lg"
+                  >
+                    <LogOut size={16} />
+                    Logout
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <Link href="/login" className="text-[#1A1A2E] hover:text-[#4A6CF7] font-medium text-sm">
+                    Login
+                  </Link>
+                  <Link href="/login?mode=signup" className="bg-[#1B2B6B] text-white px-6 py-2 font-medium text-sm hover:bg-[#141f4d] transition-colors">
+                    Sign Up
+                  </Link>
+                </>
+              )}
             </div>
 
-            <button
-              className="md:hidden text-[#1A1A2E]"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            >
+            <button className="md:hidden text-[#1A1A2E]" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
               {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
             </button>
           </div>
 
           {mobileMenuOpen && (
             <div className="md:hidden pt-4 pb-4 border-t border-gray-200 mt-4">
-              <Link href="/" className="block text-[#1A1A2E] hover:text-[#4A6CF7] py-2 text-sm font-medium">
-                Home
-              </Link>
-              <Link href="/about" className="block text-[#4A6CF7] py-2 text-sm font-medium">
-                About
-              </Link>
+              <Link href="/" className="block text-[#1A1A2E] hover:text-[#4A6CF7] py-2 text-sm font-medium">Home</Link>
+              <Link href="/about" className="block text-[#4A6CF7] py-2 text-sm font-medium">About</Link>
               <div className="flex gap-2 mt-4">
-                <button className="flex-1 text-[#1A1A2E] hover:text-[#4A6CF7] font-medium text-sm">
-                  Login
-                </button>
-                <button className="flex-1 bg-[#1B2B6B] text-white px-4 py-2 font-medium text-sm hover:bg-[#141f4d]">
-                  Sign Up
-                </button>
+                {user ? (
+                  <button onClick={handleLogout} className="flex-1 bg-red-50 text-red-600 px-4 py-2 font-medium text-sm rounded-lg">
+                    Logout
+                  </button>
+                ) : (
+                  <>
+                    <Link href="/login" className="flex-1 text-center text-[#1A1A2E] hover:text-[#4A6CF7] font-medium text-sm py-2">Login</Link>
+                    <Link href="/login?mode=signup" className="flex-1 text-center bg-[#1B2B6B] text-white px-4 py-2 font-medium text-sm hover:bg-[#141f4d]">Sign Up</Link>
+                  </>
+                )}
               </div>
             </div>
           )}
@@ -139,15 +165,9 @@ export default function About() {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 md:py-20 lg:py-24">
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-[#1A1A2E] mb-8">Our Story</h2>
           <div className="space-y-6 text-gray-600 text-base sm:text-lg leading-relaxed">
-            <p>
-              TrueResume was founded because we saw too many qualified job seekers get rejected by machines before humans could even read their resumes. We built a tool that levels the playing field.
-            </p>
-            <p>
-              Our AI analyzes your resume against real ATS systems and provides actionable feedback. Whether it's formatting issues, missing keywords, or structural problems, we help you fix everything that might be holding you back.
-            </p>
-            <p>
-              We're committed to keeping TrueResume free forever because everyone deserves the chance to get noticed by employers. Join millions of job seekers who've already improved their resumes with TrueResume.
-            </p>
+            <p>TrueResume was founded because we saw too many qualified job seekers get rejected by machines before humans could even read their resumes. We built a tool that levels the playing field.</p>
+            <p>Our AI analyzes your resume against real ATS systems and provides actionable feedback. Whether it's formatting issues, missing keywords, or structural problems, we help you fix everything that might be holding you back.</p>
+            <p>We're committed to keeping TrueResume free forever because everyone deserves the chance to get noticed by employers. Join millions of job seekers who've already improved their resumes with TrueResume.</p>
           </div>
         </div>
       </section>
@@ -155,7 +175,9 @@ export default function About() {
       {/* CTA Section */}
       <section className="bg-[#1B2B6B]">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 md:py-20 lg:py-24 text-center">
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-white mb-6">Ready to improve your <span className="text-[#4A6CF7]">resume</span>?</h2>
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-white mb-6">
+            Ready to improve your <span className="text-[#4A6CF7]">resume</span>?
+          </h2>
           <p className="text-gray-300 text-lg sm:text-xl mb-8">Start your free analysis now and get instant feedback on your resume.</p>
           <Link href="/analyze">
             <button className="bg-white text-[#1B2B6B] px-8 sm:px-12 py-3 font-black hover:bg-gray-100 transition-colors">
@@ -206,7 +228,7 @@ export default function About() {
             </div>
           </div>
           <div className="border-t border-gray-800 pt-8 flex flex-col sm:flex-row justify-between items-center text-sm">
-            <p>&copy; 2024 TrueResume. All rights reserved.</p>
+            <p>&copy; 2026 TrueResume. All rights reserved.</p>
             <div className="flex gap-4 mt-4 sm:mt-0">
               <a href="#" className="hover:text-white transition-colors">Twitter</a>
               <a href="#" className="hover:text-white transition-colors">LinkedIn</a>
